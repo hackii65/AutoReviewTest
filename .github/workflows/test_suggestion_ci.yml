@@ -23,9 +23,9 @@ jobs:
 
       # Get the PR diff
       - name: Get PR diff
+        run: gh pr diff ${{ github.event.number }} > pr_diff.txt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr diff ${{ github.event.number }} > pr_diff.txt
 
       # Check if any files in "domain/" directories have changes
       - name: Check for changes in domain directories
@@ -50,7 +50,8 @@ jobs:
               "model": "gpt-4",
               "prompt": "'"$PROMPT"'",
               "max_tokens": 500
-            }')
+            }'
+          )
           echo "$RESPONSE" > unit_test_proposals.txt
 
       # Post the generated unit test proposals as a comment on the PR
