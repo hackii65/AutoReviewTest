@@ -17,9 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Install required tools (e.g., GitHub CLI)
-      - name: Install GitHub CLI
-        run: sudo apt-get install gh
+      # Install required tools (e.g., GitHub CLI and jq)
+      - name: Install GitHub CLI and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh jq
 
       # Get the PR diff
       - name: Get PR diff
@@ -43,7 +45,8 @@ jobs:
         run: |
           FILES=$(grep "domain/" pr_diff.txt)
           PROMPT="Generate unit tests for the following Kotlin code changes:\n$FILES"
-          echo "{\"model\": \"gpt-4\", \"prompt\": \"$PROMPT\", \"max_tokens\": 500}" > data.json
+          ESCAPED_PROMPT=$(echo "$PROMPT" | jq -Rs .) # エスケープ
+          echo "{\"model\": \"gpt-4\", \"prompt\": $ESCAPED_PROMPT, \"max_tokens\": 500}" > data.json
           RESPONSE=$(curl https://api.openai.com/v1/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
