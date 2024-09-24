@@ -46,19 +46,21 @@ jobs:
           RESPONSE=$(curl https://api.openai.com/v1/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d '{
-              "model": "gpt-4",
-              "prompt": "'"$PROMPT"'",
-              "max_tokens": 500
-            }'
-          )
-          echo "$RESPONSE" > unit_test_proposals.txt
+            -d @- << EOF
+  {
+    "model": "gpt-4",
+    "prompt": "$PROMPT",
+    "max_tokens": 500
+  }
+  EOF
+  )
+  echo "$RESPONSE" > unit_test_proposals.txt
 
-      # Post the generated unit test proposals as a comment on the PR
-      - name: Post Unit Test Proposals as PR comment
-        if: env.files_changed == 'true'
-        run: |
-          COMMENT=$(cat unit_test_proposals.txt)
-          gh pr comment ${{ github.event.number }} --body "$COMMENT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# Post the generated unit test proposals as a comment on the PR
+- name: Post Unit Test Proposals as PR comment
+  if: env.files_changed == 'true'
+  run: |
+    COMMENT=$(cat unit_test_proposals.txt)
+    gh pr comment ${{ github.event.number }} --body "$COMMENT"
+  env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
