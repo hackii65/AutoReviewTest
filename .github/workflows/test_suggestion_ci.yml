@@ -1,0 +1,52 @@
+name: PR Test Suggestion
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  suggest_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }} --depth=1
+
+      - id: diff
+        run: echo "::set-output name=changed::$(git diff --name-only origin/${{ github.base_ref }} HEAD --relative ./フォルダ名/ | wc -l)"
+      - if: ${{ steps.diff.outputs.changed != '0' }}
+        run:
+          # 特定のフォルダ (例: src/) 内のファイルをフィルタリング
+#          TARGET_FILES=$(echo "${diff_files}" | grep "^domain/")
+#
+#          # フィルタ結果を表示（デバッグ用）
+#          echo "Files in the target folder (src/):"
+#          echo "$TARGET_FILES"
+#
+#          # 対象フォルダに変更がない場合は処理を終了
+#          if [ -z "$TARGET_FILES" ]; then
+#          echo "No changes in the target folder. Exiting."
+#          exit 0
+#          fi
+#
+#          # OpenAI API 呼び出し
+#          SUGGESTION=$(curl https://api.openai.com/v1/completions \
+#          -H "Content-Type: application/json" \
+#          -H "Authorization: Bearer ${{ secrets.OPENAI_KEY }}" \
+#          -d '{
+#          "model": "gpt-4o",
+#          "prompt": "I am reviewing a pull request for the following files in the src folder:\n'"$TARGET_FILES"'\nPlease suggest unit tests that could be written based on the changes made in these files.",
+#          "max_tokens": 1500,
+#          "temperature": 0.7}' | jq -r '.choices[0].text')
+          
+          # PR にコメントを追加
+#          gh pr comment ${{ github.event.pull_request.number }} --body "$SUGGESTION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify about the suggestion
+        run: echo "Unit test suggestion has been added to the PR."
