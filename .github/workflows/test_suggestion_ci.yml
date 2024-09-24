@@ -46,7 +46,7 @@ jobs:
           FILES=$(grep "domain/" pr_diff.txt)
           PROMPT="Generate unit tests for the following Kotlin code changes:\n$FILES"
           ESCAPED_PROMPT=$(echo "$PROMPT" | jq -Rs .) # エスケープ
-          echo "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"user\", \"content\": $ESCAPED_PROMPT}], \"temperature\": 0.7}" > data.json
+          echo "{\"model\": \"gpt-4o\", \"messages\": [{\"role\": \"user\", \"content\": $ESCAPED_PROMPT}], \"temperature\": 0.7}" > data.json
           RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
