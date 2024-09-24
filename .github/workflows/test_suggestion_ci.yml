@@ -2,7 +2,7 @@ name: Propose Unit Test on PR
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, synchronize]
 
 jobs:
   propose-tests:
@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Set GH_TOKEN environment variable
+      - name: Set GitHub Token
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Install required tools (e.g., GitHub CLI)
       - name: Install GitHub CLI
         run: sudo apt-get install gh
@@ -21,11 +26,11 @@ jobs:
       - name: Get PR diff
         run: gh pr diff ${{ github.event.number }} > pr_diff.txt
 
-      # Check if the files in the specific directory have changes
-      - name: Check for changes in specific directory
+      # Check if any files in "domain/" directories have changes
+      - name: Check for changes in domain directories
         id: changes
         run: |
-          if grep -q "path/to/your/kotlin/files" pr_diff.txt; then
+          if grep -q "domain/" pr_diff.txt; then
             echo "files_changed=true" >> $GITHUB_ENV
           else
             echo "files_changed=false" >> $GITHUB_ENV
@@ -35,7 +40,7 @@ jobs:
       - name: Generate Unit Test Proposals
         if: env.files_changed == 'true'
         run: |
-          FILES=$(git diff --name-only HEAD~1)
+          FILES=$(grep "domain/" pr_diff.txt)
           PROMPT="Generate unit tests for the following Kotlin code changes:\n$FILES"
           RESPONSE=$(curl https://api.openai.com/v1/completions \
             -H "Content-Type: application/json" \
@@ -53,3 +58,5 @@ jobs:
         run: |
           COMMENT=$(cat unit_test_proposals.txt)
           gh pr comment ${{ github.event.number }} --body "$COMMENT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
