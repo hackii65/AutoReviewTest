@@ -1,0 +1,63 @@
+name: Propose Unit Test on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  propose-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Install required tools (e.g., GitHub CLI and jq)
+      - name: Install GitHub CLI and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh jq
+
+      # Get the PR diff
+      - name: Get PR diff
+        run: gh pr diff ${{ github.event.pull_request.number }} > pr_diff.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Check if any files in "domain/" directories have changes
+      - name: Check for changes in domain directories
+        id: changes
+        run: |
+          if grep -q "domain/" pr_diff.txt; then
+            echo "files_changed=true" >> $GITHUB_ENV
+          else
+            echo "files_changed=false" >> $GITHUB_ENV
+          fi
+
+      # If there are changes, generate unit tests using OpenAI
+      - name: Generate Unit Test Proposals
+        if: env.files_changed == 'true'
+        run: |
+          FILES=$(grep "domain/" pr_diff.txt)
+          PROMPT="Generate unit tests for the following Kotlin code changes:\n$FILES"
+          ESCAPED_PROMPT=$(echo "$PROMPT" | jq -Rs .) # エスケープ
+          echo "{\"model\": \"gpt-4o\", \"messages\": [{\"role\": \"user\", \"content\": $ESCAPED_PROMPT}], \"temperature\": 0.7}" > data.json
+          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d @data.json)
+          echo "$RESPONSE" > unit_test_proposals.txt
+
+      # Post the generated unit test proposals as a comment on the PR
+      - name: Post Unit Test Proposals as PR comment
+        if: env.files_changed == 'true'
+        run: |
+          COMMENT=$(cat unit_test_proposals.txt)
+          gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
