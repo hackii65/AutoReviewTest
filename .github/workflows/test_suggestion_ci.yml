@@ -20,6 +20,7 @@ jobs:
         run: echo "::set-output name=changed::$(git diff --name-only origin/${{ github.base_ref }} HEAD --relative ./フォルダ名/ | wc -l)"
       - if: ${{ steps.diff.outputs.changed != '0' }}
         run:
+          gh pr comment ${{ github.event.pull_request.number }}
           # 特定のフォルダ (例: src/) 内のファイルをフィルタリング
 #          TARGET_FILES=$(echo "${diff_files}" | grep "^domain/")
 #
@@ -45,8 +46,6 @@ jobs:
           
           # PR にコメントを追加
 #          gh pr comment ${{ github.event.pull_request.number }} --body "$SUGGESTION"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify about the suggestion
         run: echo "Unit test suggestion has been added to the PR."
